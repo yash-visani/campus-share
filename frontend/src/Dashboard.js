@@ -89,9 +89,10 @@ const handleRate = async (materialId, score) => {
 
   // ==========================================
 
-  useEffect(() => {
+useEffect(() => {
     fetchMaterials();
-  }, [filterCourse, filterYear, filterSemester]); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterCourse, filterYear, filterSemester]);
 
   const filterSelectStyle = { padding: '10px', borderRadius: '4px', border: '1px solid #ccc', marginRight: '15px', minWidth: '150px' };
 
