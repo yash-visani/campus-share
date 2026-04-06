@@ -59,8 +59,11 @@ app.post('/api/register', async (req, res) => {
         });
 
         // --- GMAIL TRANSPORTER CONFIGURATION ---
+// --- BREVO BYPASS CONFIGURATION ---
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp-relay.brevo.com',
+            port: 2525, // <--- The magic tunnel!
+            secure: false, 
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
