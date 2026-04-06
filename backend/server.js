@@ -5,7 +5,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const connectDB = require('./config/db'); 
+const connectDB = require('./config/db');
 const User = require('./models/User');
 const Material = require('./models/Material');
 const College = require('./models/College');
@@ -16,8 +16,8 @@ const PORT = process.env.PORT || 5000;
 // Connect to Database
 connectDB();
 
-app.use(cors()); 
-app.use(express.json()); 
+app.use(cors());
+app.use(express.json());
 
 // Debugging check to ensure .env is loading
 console.log("Checking Email Config: ", process.env.EMAIL_USER ? "✅ Loaded" : "❌ EMAIL_USER missing in .env");
@@ -35,7 +35,7 @@ app.post('/api/register', async (req, res) => {
     try {
         const { username, email, password, course, current_semester } = req.body;
 
-        const emailDomain = email.split('@')[1].toLowerCase(); 
+        const emailDomain = email.split('@')[1].toLowerCase();
         const approvedCollege = await College.findOne({ domain: emailDomain });
 
         if (!approvedCollege) {
@@ -54,12 +54,12 @@ app.post('/api/register', async (req, res) => {
             username, email, password: hashedPassword, course,
             current_semester: current_semester || 1,
             college_id: approvedCollege._id,
-            verification_otp: otpCode 
+            verification_otp: otpCode
         });
-        
+
         await newUser.save();
 
-// --- BREVO TRANSPORTER CONFIGURATION ---
+        // --- BREVO TRANSPORTER CONFIGURATION ---
         const transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST,
             port: process.env.EMAIL_PORT,
@@ -70,16 +70,20 @@ app.post('/api/register', async (req, res) => {
             },
             // ADD THIS NEW TLS BLOCK BELOW:
             tls: {
-                rejectUnauthorized: false 
+                rejectUnauthorized: false
             }
         });
 
+// 1. Send the email FIRST
         await transporter.sendMail({
-            from: `"Campus Share" <${process.env.EMAIL_FROM}>`, // Uses verified Brevo sender
+            from: `"Campus Share" <${process.env.EMAIL_FROM}>`,
             to: email,
             subject: 'Campus Share - Verify Your Account',
-            text: `Hello ${username},\n\nWelcome to Campus Share! We are excited to have you join our community.\n\nYour official verification code is: ${otpCode}\n\nPlease enter this code on the website to verify your account. Do not share this code with anyone.\n\nBest regards,\nThe Campus Share Team`
+            text: `Hello ${username},\n\nWelcome to Campus Share! Your official verification code is: ${otpCode}\n\nPlease enter this code on the website to verify your account.\n\nBest regards,\nThe Campus Share Team`
         });
+
+        // 2. ONLY save the user if the email successfully sent
+        await newUser.save();
 
         console.log("📧 OTP Email sent successfully to:", email);
         res.json({ message: "OTP sent! Please check your email to verify your account." });
@@ -104,10 +108,10 @@ app.post('/api/login', async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id, username: user.username }, 'my_secret_key', { expiresIn: '2h' });
-        res.json({ 
-            message: "Login successful!", 
-            token: token, 
-            user: { _id: user._id, username: user.username, course: user.course } 
+        res.json({
+            message: "Login successful!",
+            token: token,
+            user: { _id: user._id, username: user.username, course: user.course }
         });
     } catch (err) {
         console.error(err);
@@ -122,14 +126,14 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/materials', async (req, res) => {
     try {
         const { course, year, semester } = req.query;
-        let filter = { is_hidden: { $ne: true } }; 
-        
+        let filter = { is_hidden: { $ne: true } };
+
         if (course && course !== 'All') filter.course = course;
         if (year && year !== 'All') filter.year = Number(year);
         if (semester && semester !== 'All') filter.semester = Number(semester);
 
         const results = await Material.find(filter);
-        res.json(results); 
+        res.json(results);
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch materials" });
     }
@@ -139,8 +143,8 @@ app.post('/api/materials', async (req, res) => {
     try {
         const { title, description, file_url, course, year, semester, subject, student_name, uploader_id } = req.body;
         const newMaterial = new Material({
-            title, description, file_url, course, 
-            year: Number(year), semester: Number(semester), subject, 
+            title, description, file_url, course,
+            year: Number(year), semester: Number(semester), subject,
             uploader_id: uploader_id || null,
             student_name: student_name || 'Anonymous'
         });
@@ -156,7 +160,7 @@ app.delete('/api/materials/:id', async (req, res) => {
         const { id } = req.params;
         const student_name = req.query.student_name ? req.query.student_name.trim() : "";
         const material = await Material.findById(id);
-        
+
         if (!material) return res.status(404).json({ error: "Material not found" });
 
         if (material.student_name.toLowerCase() !== student_name.toLowerCase()) {
@@ -181,7 +185,7 @@ app.post('/api/materials/:id/rate', async (req, res) => {
 
     try {
         const { id } = req.params;
-        const { user_id, score } = req.body; 
+        const { user_id, score } = req.body;
 
         if (score < 1 || score > 5) {
             console.log("❌ Rejected: Score is invalid!");
@@ -195,7 +199,7 @@ app.post('/api/materials/:id/rate', async (req, res) => {
         }
 
         const existingRatingIndex = material.ratings.findIndex(r => r.user_id && r.user_id.toString() === user_id);
-        
+
         if (existingRatingIndex >= 0) material.ratings[existingRatingIndex].score = score;
         else material.ratings.push({ user_id, score });
 
@@ -243,7 +247,7 @@ app.post('/api/verify-email', async (req, res) => {
 
         if (user.verification_otp === otp) {
             user.is_verified = true;
-            user.verification_otp = null; 
+            user.verification_otp = null;
             await user.save();
             res.json({ message: "Email verified successfully! You can now log in." });
         } else {
@@ -263,7 +267,7 @@ app.post('/api/forgot-password', async (req, res) => {
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         user.reset_otp = otp;
-        user.reset_otp_expiry = Date.now() + 3600000; 
+        user.reset_otp_expiry = Date.now() + 3600000;
         await user.save();
 
         // --- BREVO TRANSPORTER CONFIGURATION ---
@@ -278,15 +282,16 @@ app.post('/api/forgot-password', async (req, res) => {
             },
             // ADD THIS NEW TLS BLOCK BELOW:
             tls: {
-                rejectUnauthorized: false 
+                rejectUnauthorized: false
             }
         });
 
         await transporter.sendMail({
-            from: `"Campus Share" <${process.env.EMAIL_FROM}>`, // Uses verified Brevo sender
+            from: `"Campus Share" <${process.env.EMAIL_FROM}>`,
             to: email,
             subject: 'Campus Share - Password Reset',
-            text: `Hello ${username},\n\nWelcome to Campus Share! We are excited to have you join our community.\n\nYour official verification code is: ${otpCode}\n\nPlease enter this code on the website to verify your account. Do not share this code with anyone.\n\nBest regards,\nThe Campus Share Team`
+            // 👇 Fixed the variables and the message below 👇
+            text: `Hello ${user.username},\n\nYou requested a password reset for your Campus Share account.\n\nYour reset code is: ${otp}\n\nPlease enter this code on the website to choose a new password.\n\nBest regards,\nThe Campus Share Team`
         });
 
         res.json({ message: "Reset OTP sent to email!" });
@@ -314,7 +319,7 @@ app.post('/api/reset-password', async (req, res) => {
         user.password = hashedPassword;
         user.reset_otp = null;
         user.reset_otp_expiry = null;
-        
+
         await user.save();
         res.json({ message: "Password reset successful! You can now log in with your new password." });
     } catch (err) {

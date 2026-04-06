@@ -40,7 +40,7 @@ function Upload({ currentUser }) {
       })
       .catch(error => {
         console.error("Upload Error Details:", error.response ? error.response.data : error.message);
-        alert("❌ Failed to upload. Check if your Node server and XAMPP MySQL are running.");
+        alert("❌ Failed to upload. Check if your server is running.");
       });
   };
 
