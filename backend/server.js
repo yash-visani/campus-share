@@ -57,24 +57,16 @@ app.post('/api/register', async (req, res) => {
             verification_otp: otpCode
         });
 
-        await newUser.save();
-
-        // --- BREVO TRANSPORTER CONFIGURATION ---
+        // --- GMAIL TRANSPORTER CONFIGURATION ---
         const transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: process.env.EMAIL_PORT,
-            secure: false, // Required for port 587
+            service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            },
-            // ADD THIS NEW TLS BLOCK BELOW:
-            tls: {
-                rejectUnauthorized: false
             }
         });
 
-// 1. Send the email FIRST
+        // 1. Send the email FIRST
         await transporter.sendMail({
             from: `"Campus Share" <${process.env.EMAIL_FROM}>`,
             to: email,
@@ -179,7 +171,6 @@ app.delete('/api/materials/:id', async (req, res) => {
 // ==========================================
 
 app.post('/api/materials/:id/rate', async (req, res) => {
-    // 👇 The Trap is set here 👇
     console.log(`📥 Rating attempt for Material ID: ${req.params.id}`);
     console.log(`📊 Data received from React:`, req.body);
 
@@ -216,7 +207,7 @@ app.post('/api/materials/:id/rate', async (req, res) => {
 });
 
 // ==========================================
-// --- REPORT ROUTE (Cleaned Up) ---
+// --- REPORT ROUTE ---
 // ==========================================
 app.post('/api/materials/:id/report', async (req, res) => {
     try {
@@ -270,19 +261,12 @@ app.post('/api/forgot-password', async (req, res) => {
         user.reset_otp_expiry = Date.now() + 3600000;
         await user.save();
 
-        // --- BREVO TRANSPORTER CONFIGURATION ---
-        // --- BREVO TRANSPORTER CONFIGURATION ---
+        // --- GMAIL TRANSPORTER CONFIGURATION ---
         const transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: process.env.EMAIL_PORT,
-            secure: false, // Required for port 587
+            service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            },
-            // ADD THIS NEW TLS BLOCK BELOW:
-            tls: {
-                rejectUnauthorized: false
             }
         });
 
@@ -290,12 +274,12 @@ app.post('/api/forgot-password', async (req, res) => {
             from: `"Campus Share" <${process.env.EMAIL_FROM}>`,
             to: email,
             subject: 'Campus Share - Password Reset',
-            // 👇 Fixed the variables and the message below 👇
             text: `Hello ${user.username},\n\nYou requested a password reset for your Campus Share account.\n\nYour reset code is: ${otp}\n\nPlease enter this code on the website to choose a new password.\n\nBest regards,\nThe Campus Share Team`
         });
 
         res.json({ message: "Reset OTP sent to email!" });
     } catch (err) {
+        console.error("🚨 EMAIL ERROR REVEALED:", err); // Added this to catch any future email errors!
         res.status(500).json({ error: "Error sending reset email" });
     }
 });
